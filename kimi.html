@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Library</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text: #0f172a;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-bg: #eef2ff;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --radius: 12px;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  #app { display: flex; height: 100vh; }
+  
+  /* Sidebar */
+  #sidebar {
+    width: 300px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  
+  .sidebar-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .sidebar-header h1 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.01em;
+  }
+  
+  #tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 8px;
+  }
+  
+  .tree-item { margin: 2px 0; }
+  
+  .tree-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.875rem;
+    user-select: none;
+  }
+  
+  .tree-row:hover { background: var(--bg); }
+  .tree-row.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+  
+  .tree-toggle {
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+  
+  .tree-toggle.expanded { transform: rotate(90deg); }
+  
+  .tree-children {
+    margin-left: 26px;
+    border-left: 1px solid var(--border);
+    padding-left: 4px;
+    display: none;
+  }
+  
+  .tree-children.open { display: block; }
+  
+  /* Main */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+  
+  #header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  
+  #breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+  
+  .crumb {
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.15s;
+    font-weight: 500;
+  }
+  
+  .crumb:hover { color: var(--accent); }
+  .crumb:last-child { color: var(--text); font-weight: 700; cursor: default; }
+  .crumb-sep { color: var(--text-secondary); opacity: 0.5; }
+  
+  #content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px;
+  }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: transparent;
+    transition: background 0.2s;
+  }
+  
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+  }
+  
+  .card:hover::before { background: var(--accent); }
+  .card.folder:hover::before { background: var(--text-secondary); }
+  .card.pdf:hover::before { background: var(--danger); }
+  .card.youtube:hover::before { background: #dc2626; }
+  
+  .card-icon {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-bg);
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  
+  .card-icon.pdf { background: var(--danger-bg); color: var(--danger); }
+  .card-icon.youtube {
+    background: #000;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+  }
+  
+  .card-icon.youtube img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+    transition: opacity 0.2s, transform 0.3s;
+  }
+  
+  .card:hover .card-icon.youtube img {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  
+  .card-icon.youtube .play {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.25);
+    transition: background 0.2s;
+  }
+  
+  .card:hover .card-icon.youtube .play {
+    background: rgba(0,0,0,0.4);
+  }
+  
+  .card-body { min-width: 0; }
+  
+  .card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .card-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+  
+  .btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text-secondary);
+  }
+  
+  .btn:hover {
+    background: var(--bg);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    color: white;
+  }
+  
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+  
+  .btn-danger:hover {
+    background: #b91c1c;
+    color: white;
+  }
+  
+  /* Modal */
+  #modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 40px;
+    backdrop-filter: blur(4px);
+  }
+  
+  #modal.active { display: flex; animation: fadeIn 0.2s ease; }
+  
+  .modal-content {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 100%; max-width: 960px; height: 85vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
+    border: 1px solid var(--border);
+  }
+  
+  .modal-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+  
+  .modal-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .modal-body {
+    flex: 1;
+    position: relative;
+    background: #52525b;
+  }
+  
+  .modal-body iframe {
+    width: 100%; height: 100%;
+    border: none;
+    display: block;
+  }
+  
+  /* States */
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+    animation: fadeIn 0.4s ease;
+  }
+  
+  .empty h2 {
+    font-size: 1.25rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  
+  .loading {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .error-box {
+    background: var(--danger-bg);
+    color: var(--danger);
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    border: 1px solid #fecaca;
+    max-width: 600px;
+    margin: 40px auto;
+    line-height: 1.5;
+  }
+  
+  .error-box code {
+    background: rgba(220, 38, 38, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.9em;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    #sidebar { width: 240px; }
+    #content { padding: 16px; }
+    .grid { grid-template-columns: 1fr; }
+    #modal { padding: 16px; }
+    .modal-content { height: 92vh; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <h1>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Document Library
+      </h1>
+    </div>
+    <div id="tree"></div>
+  </aside>
+  
+  <main id="main">
+    <header id="header">
+      <div id="breadcrumb"></div>
+    </header>
+    <div id="content">
+      <div class="empty">
+        <div class="loading"></div>
+        <p>Scanning repository...</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Preview</h3>
+      <button class="btn" onclick="app.closeModal()">Close</button>
+    </div>
+    <div class="modal-body">
+      <iframe id="modal-frame" title="Preview"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== SETUP NOTES ====================
+// 1. Save this file as index.html at the root of your repo.
+// 2. Enable GitHub Pages in repo settings.
+// 3. For YouTube links, create .youtube files containing just the URL.
+// 4. If you have many folders, you may hit the 60 req/hour GitHub API limit.
+//    To fix, generate a Personal Access Token (read-only) and add it below.
+// =====================================================
+
+// Optional: hardcode your repo here if auto-detection fails
+// const CONFIG = { owner: 'yourname', repo: 'yourrepo', branch: 'main', token: '' };
+
+class DocBrowser {
+  constructor() {
+    this.tree = new Map();      // path -> array of items
+    this.currentPath = '';
+    this.config = this.detectConfig();
+    this.ytCache = new Map();   // path -> youtube url
+    this.init();
+  }
+  
+  detectConfig() {
+    if (typeof CONFIG !== 'undefined') return CONFIG;
+    const host = window.location.host;
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    
+    // Standard GitHub Pages: username.github.io/repo-name
+    if (host.endsWith('github.io')) {
+      const owner = host.split('.')[0];
+      const repo = pathParts[0] || '';
+      return { owner, repo, branch: 'main', token: '' };
+    }
+    
+    // Custom domain or local testing - set manually above
+    return { owner: '', repo: '', branch: 'main', token: '' };
+  }
+  
+  getHeaders() {
+    const h = { Accept: 'application/vnd.github.v3+json' };
+    if (this.config.token) h.Authorization = `token ${this.config.token}`;
+    return h;
+  }
+  
+  getApiUrl(path) {
+    return `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}?ref=${this.config.branch}`;
+  }
+  
+  getFileUrl(path) {
+    // Convert repo-relative path to absolute served URL based on current page location
+    let base = window.location.pathname;
+    if (!base.endsWith('/')) {
+      base = base.substring(0, base.lastIndexOf('/') + 1);
+    }
+    return window.location.origin + base + path;
+  }
+  
+  async init() {
+    if (!this.config.owner || !this.config.repo) {
+      this.showError(
+        'Could not detect GitHub repository.<br>' +
+        'Please uncomment and set the <code>CONFIG</code> object near the top of the script.'
+      );
+      return;
+    }
+    try {
+      await this.loadPath('');
+      this.renderSidebar();
+      this.renderMain();
+    } catch (err) {
+      this.showError(err.message);
+    }
+  }
+  
+  async loadPath(path) {
+    if (this.tree.has(path)) return this.tree.get(path);
+    
+    try {
+      const res = await fetch(this.getApiUrl(path), { headers: this.getHeaders() });
+      
+      if (res.status === 403) {
+        throw new Error(
+          'GitHub API rate limit exceeded (60 requests/hour for unauthenticated use).<<br>' +
+          'Add a read-only <code>token</code> to the CONFIG object to increase the limit.'
+        );
+      }
+      if (res.status === 404) {
+        throw new Error('Repository or path not found. Check that GitHub Pages is enabled and the repo is public.');
+      }
+      if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+      
+      const data = await res.json();
+      
+      // Keep only folders, PDFs, and YouTube links for a clean UI
+      const filtered = Array.isArray(data) ? data.filter(item => 
+        item.type === 'dir' || 
+        item.name.toLowerCase().endsWith('.pdf') ||
+        item.name.toLowerCase().endsWith('.youtube')
+      ) : [];
+      
+      this.tree.set(path, filtered);
+      return filtered;
+    } catch (err) {
+      if (err.message.includes('Failed to fetch')) {
+        throw new Error('Network error. Check your connection and that the repo is public.');
+      }
+      throw err;
+    }
+  }
+  
+  async getYoutubeUrl(item) {
+    if (this.ytCache.has(item.path)) return this.ytCache.get(item.path);
+    if (!item.download_url) return null;
+    
+    try {
+      const res = await fetch(item.download_url);
+      const text = (await res.text()).trim();
+      this.ytCache.set(item.path, text);
+      return text;
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  extractVideoId(url) {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+  
+  showError(msg) {
+    document.getElementById('content').innerHTML = 
+      `<div class="error-box">${msg}</div>`;
+  }
+  
+  // ==================== RENDERING ====================
+  
+  renderSidebar() {
+    const root = document.getElementById('tree');
+    root.innerHTML = '';
+    this.renderTreeNode(root, '', 0);
+  }
+  
+  renderTreeNode(container, path, depth) {
+    const items = this.tree.get(path) || [];
+    const folders = items.filter(i => i.type === 'dir').sort((a,b) => a.name.localeCompare(b.name));
+    
+    folders.forEach(folder => {
+      const node = document.createElement('div');
+      node.className = 'tree-item';
+      
+      const row = document.createElement('div');
+      row.className = 'tree-row' + (folder.path === this.currentPath ? ' active' : '');
+      row.innerHTML = `
+        <span class="tree-toggle">▸</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${folder.name}</span>
+      `;
+      
+      const childrenContainer = document.createElement('div');
+      childrenContainer.className = 'tree-children';
+      
+      const toggle = row.querySelector('.tree-toggle');
+      
+      toggle.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (toggle.classList.contains('expanded')) {
+          toggle.classList.remove('expanded');
+          childrenContainer.classList.remove('open');
+        } else {
+          toggle.classList.add('expanded');
+          if (!this.tree.has(folder.path)) {
+            await this.loadPath(folder.path);
+          }
+          // Clear and rebuild children
+          childrenContainer.innerHTML = '';
+          this.renderTreeNode(childrenContainer, folder.path, depth + 1);
+          childrenContainer.classList.add('open');
+        }
+      });
+      
+      row.addEventListener('click', () => {
+        this.navigate(folder.path);
+      });
+      
+      node.appendChild(row);
+      node.appendChild(childrenContainer);
+      container.appendChild(node);
+      
+      // Auto-expand if current path is inside this folder
+      if (this.currentPath && (this.currentPath === folder.path || this.currentPath.startsWith(folder.path + '/'))) {
+        toggle.classList.add('expanded');
+        if (!this.tree.has(folder.path)) {
+          this.loadPath(folder.path).then(() => {
+            childrenContainer.innerHTML = '';
+            this.renderTreeNode(childrenContainer, folder.path, depth + 1);
+            childrenContainer.classList.add('open');
+          });
+        } else {
+          childrenContainer.innerHTML = '';
+          this.renderTreeNode(childrenContainer, folder.path, depth + 1);
+          childrenContainer.classList.add('open');
+        }
+      }
+    });
+  }
+  
+  renderMain() {
+    const items = this.tree.get(this.currentPath) || [];
+    const breadcrumb = document.getElementById('breadcrumb');
+    const content = document.getElementById('content');
+    
+    // Breadcrumb
+    const parts = this.currentPath ? this.currentPath.split('/') : [];
+    let html = `<span class="crumb" onclick="app.navigate('')">Root</span>`;
+    let buildPath = '';
+    parts.forEach((part, i) => {
+      buildPath += (buildPath ? '/' : '') + part;
+      const isLast = i === parts.length - 1;
+      html += `<span class="crumb-sep">/</span>`;
+      html += isLast 
+        ? `<span class="crumb">${part}</span>`
+        : `<span class="crumb" onclick="app.navigate('${buildPath}')">${part}</span>`;
+    });
+    breadcrumb.innerHTML = html;
+    
+    // Empty state
+    if (items.length === 0) {
+      content.innerHTML = `
+        <div class="empty">
+          <h2>Empty folder</h2>
+          <p>Add PDFs or .youtube files to see them here.</p>
+        </div>`;
+      return;
+    }
+    
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    
+    // Sort: folders first, then files alphabetically
+    const sorted = [...items].sort((a, b) => {
+      if (a.type === 'dir' && b.type !== 'dir') return -1;
+      if (a.type !== 'dir' && b.type === 'dir') return 1;
+      return a.name.localeCompare(b.name);
+    });
+    
+    sorted.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      
+      if (item.type === 'dir') {
+        card.classList.add('folder');
+        card.innerHTML = `
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${item.name}</div>
+            <div class="card-meta">Folder</div>
+          </div>
+        `;
+        card.onclick = () => this.navigate(item.path);
+        
+      } else if (item.name.toLowerCase().endsWith('.pdf')) {
+        card.classList.add('pdf');
+        const fileUrl = this.getFileUrl(item.path);
+        const cleanName = item.name.replace(/\.pdf$/i, '');
+        card.innerHTML = `
+          <div class="card-icon pdf">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${cleanName}</div>
+            <div class="card-meta">PDF · ${this.formatSize(item.size)}</div>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-danger" onclick="event.stopPropagation(); window.open('${fileUrl}', '_blank')">Open</button>
+            <button class="btn" onclick="event.stopPropagation(); app.previewPdf('${fileUrl}', '${cleanName}')">Preview</button>
+          </div>
+        `;
+        
+      } else if (item.name.toLowerCase().endsWith('.youtube')) {
+        card.classList.add('youtube');
+        const cleanName = item.name.replace(/\.youtube$/i, '');
+        const uniqueId = item.sha || Math.random().toString(36).slice(2);
+        
+        card.innerHTML = `
+          <div class="card-icon youtube" id="yt-thumb-${uniqueId}">
+            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--danger-bg);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${cleanName}</div>
+            <div class="card-meta">YouTube Video</div>
+          </div>
+        `;
+        
+        // Lazy-load thumbnail
+        this.getYoutubeUrl(item).then(url => {
+          const videoId = this.extractVideoId(url);
+          const container = document.getElementById(`yt-thumb-${uniqueId}`);
+          if (videoId && container) {
+            container.innerHTML = `
+              <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg" alt="" loading="lazy">
+              <div class="play">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            `;
+          }
+          card.onclick = () => window.open(url, '_blank');
+        });
+      }
+      
+      grid.appendChild(card);
+    });
+    
+    content.innerHTML = '';
+    content.appendChild(grid);
+  }
+  
+  navigate(path) {
+    this.currentPath = path;
+    this.loadPath(path).then(() => {
+      this.renderSidebar();
+      this.renderMain();
+      // Scroll content to top
+      document.getElementById('content').scrollTop = 0;
+    }).catch(err => this.showError(err.message));
+  }
+  
+  previewPdf(url, name) {
+    document.getElementById('modal-title').textContent = name;
+    document.getElementById('modal-frame').src = url;
+    document.getElementById('modal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  closeModal() {
+    document.getElementById('modal').classList.remove('active');
+    document.getElementById('modal-frame').src = '';
+    document.body.style.overflow = '';
+  }
+  
+  formatSize(bytes) {
+    if (bytes == null) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+}
+
+const app = new DocBrowser();
+
+// Modal interactions
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal') app.closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') app.closeModal();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+      "title": "Repository Library",
+      "folders": [
+         {
+           "name": "Folder A",
+           "path": "Folder A",
+           "folders": [
+              {
+                "name": "Subfolder 1",
+                "path": "Folder A/Subfolder 1",
+                "folders": [],
+                "files": [
+                  { "name": "Doc 1.pdf", "path": "Folder A/Subfolder 1/Doc 1.pdf", "type": "pdf" },
+                  { "name": "Video intro", "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "type": "youtube" }
+                ]
+              }
+            ],
+            "files": []
+          }
+        ]
+}
