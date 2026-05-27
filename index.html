@@ -35,6 +35,9 @@
   --blue:#6ba3be;
   --blue-a:rgba(107,163,190,.14);
   --blue-b:rgba(107,163,190,.24);
+  --teal:#5fb3a3;
+  --teal-a:rgba(95,179,163,.14);
+  --teal-b:rgba(95,179,163,.24);
   --red:#e05050;
   --red-a:rgba(224,80,80,.13);
   --red-b:rgba(224,80,80,.24);
@@ -238,6 +241,7 @@ main{
 }
 .card:hover{transform:translateX(4px)}
 .card.pdf:hover{background:var(--blue-a);border-color:var(--blue-b)}
+.card.html:hover{background:var(--teal-a);border-color:var(--teal-b)}
 .card.yt:hover{background:var(--red-a);border-color:var(--red-b)}
 
 /* File type badge */
@@ -247,6 +251,7 @@ main{
   display:flex;align-items:center;justify-content:center;
 }
 .ftype.pdf{background:var(--blue-a);border:1px solid var(--blue-b);color:var(--blue)}
+.ftype.html{background:var(--teal-a);border:1px solid var(--teal-b);color:var(--teal)}
 .ftype.yt{background:var(--red-a);border:1px solid var(--red-b);color:var(--red)}
 .ftype svg{width:14px;height:14px}
 
@@ -277,12 +282,69 @@ main{
 .faction{
   font-size:10px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);
-  display:flex;align-items:center;gap:3px;
+  display:flex;align-items:center;gap:4px;
   opacity:0;transition:opacity var(--t);
   flex-shrink:0;
 }
 .faction svg{width:10px;height:10px}
 .card:hover .faction{opacity:1}
+
+.act-preview{cursor:pointer;transition:color var(--t)}
+.act-preview:hover{color:var(--gold)}
+.act-sep{opacity:.4}
+
+/* ── Preview Modal ───────────────────────────────────────────── */
+#modal{
+  display:none;
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(13,12,11,.88);
+  backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+  padding:2rem;
+}
+#modal.active{display:flex;animation:fadein .25s ease}
+.modal-content{
+  background:var(--surf);
+  border:1px solid var(--border-h);
+  border-radius:var(--r);
+  width:100%;max-width:960px;height:86vh;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 25px 50px -12px rgba(0,0,0,.55);
+}
+.modal-header{
+  padding:1rem 1.25rem;
+  border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;
+}
+.modal-header h3{
+  font-family:'Playfair Display',serif;
+  font-size:1.15rem;
+  font-weight:400;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.modal-body{
+  flex:1;
+  position:relative;
+  background:var(--bg);
+}
+.modal-body iframe{
+  width:100%;height:100%;
+  border:none;display:block;
+}
+.btn{
+  background:var(--surf2);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-family:inherit;
+  font-size:11px;
+  padding:.45rem .9rem;
+  border-radius:var(--r);
+  cursor:pointer;
+  transition:all var(--t);
+}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
 
 /* ── Config notice ───────────────────────────────────────────── */
 #cfg-notice{
@@ -321,13 +383,11 @@ const CFG = {
   ]),
 };
 </script>
-<!--
-  ═══════════════════════════════════════════════════════════════════
--->
+<!-- ═══════════════════════════════════════════════════════════════ -->
 
-<header>
+<<header>
   <div>
-    <div class="h-logo" id="h-title">Loading<em>…</em></div>
+    <div class="h-logo" id="h-title">Loading<<em>…</em></div>
     <div class="h-sub" id="h-sub">Document Archive</div>
   </div>
   <div class="h-search" id="search-wrap" style="display:none">
@@ -339,10 +399,23 @@ const CFG = {
 </header>
 <div class="rule"></div>
 
-<main>
+<<main>
   <div id="banner-zone"></div>
   <ul class="tree" id="root-tree" role="tree"></ul>
 </main>
+
+<!-- Preview Modal -->
+<div id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Preview</h3>
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+    <div class="modal-body">
+      <iframe id="modal-frame" title="Preview" sandbox="allow-same-origin allow-scripts"></iframe>
+    </div>
+  </div>
+</div>
 
 <div id="cfg-notice">
   Auto-detection failed. Set <code>CFG.owner</code> and <code>CFG.repo</code>
@@ -352,11 +425,13 @@ const CFG = {
 <script>
 /* ── SVG icons ─────────────────────────────────────────────────── */
 const ICON = {
-  caret:`<svg class="f-caret" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>`,
-  folder:`<svg class="f-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>`,
-  pdf:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`,
-  play:`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>`,
-  ext:`<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>`,
+  caret:`<<svg class="f-caret" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>`,
+  folder:`<<svg class="f-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>`,
+  pdf:`<<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`,
+  html:`<<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>`,
+  play:`<<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>`,
+  ext:`<<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>`,
+  preview:`<<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
 };
 
 /* ── Repo detection ─────────────────────────────────────────────── */
@@ -406,8 +481,8 @@ async function getLinks(items){
 function ext(name){const i=name.lastIndexOf('.');return i>0?name.slice(i).toLowerCase():'';}
 function fmtSize(b){
   if(!b) return '';
-  if(b<1024) return b+' B';
-  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  if(b<<1024) return b+' B';
+  if(b<<1048576) return (b/1024).toFixed(1)+' KB';
   return (b/1048576).toFixed(1)+' MB';
 }
 function ytId(url){
@@ -415,6 +490,20 @@ function ytId(url){
   return m?m[1]:null;
 }
 function stripPdf(n){return n.replace(/\.pdf$/i,'');}
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── URL builder for documents ─────────────────────────────────── */
+function itemUrl(item){
+  const e = ext(item.name);
+  if(e==='.html'){
+    // Serve HTML through GitHub Pages so it renders instead of showing raw source
+    const base = location.origin + location.pathname.replace(/\/[^\/]*$/,'/');
+    return base + item.path;
+  }
+  return item.download_url;
+}
 
 /* ── Search state ──────────────────────────────────────────────── */
 let searchQuery = '';
@@ -423,7 +512,7 @@ const allCards = [];  // {el, text}
 function highlight(text, q){
   if(!q) return text;
   const re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
-  return text.replace(re,'<span class="hl">$1</span>');
+  return text.replace(re,'<<span class="hl">$1</span>');
 }
 
 function applySearch(){
@@ -441,25 +530,70 @@ function applySearch(){
   });
 }
 
-/* ── Render helpers ────────────────────────────────────────────── */
-function mkPdfCard(item){
+/* ── Preview modal ─────────────────────────────────────────────── */
+function previewDoc(url, title){
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-frame').src = url;
+  document.getElementById('modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('active');
+  document.getElementById('modal-frame').src = '';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('modal').addEventListener('click', (e)=>{
+  if(e.target.id==='modal') closeModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape') closeModal();
+});
+
+/* ── Document cards (PDF + HTML) ───────────────────────────────── */
+function mkDocCard(item){
+  const e = ext(item.name);
+  const url = itemUrl(item);
+  const label = e==='.pdf' ? stripPdf(item.name) : item.name.replace(/\.html$/i,'');
+  const isPdf = e==='.pdf';
+
   const a = document.createElement('a');
-  a.className = 'card pdf';
-  a.href = item.download_url;
+  a.className = 'card ' + (isPdf?'pdf':'html');
+  a.href = url;
   a.target = '_blank';
   a.rel = 'noopener noreferrer';
-  const label = stripPdf(item.name);
+
+  const icon = isPdf ? ICON.pdf : ICON.html;
+  const ftypeClass = isPdf ? 'pdf' : 'html';
+  const meta = isPdf ? `${fmtSize(item.size)}&thinsp;·&thinsp;PDF` : 'HTML page';
+
   a.innerHTML = `
-    <div class="ftype pdf">${ICON.pdf}</div>
+    <div class="ftype ${ftypeClass}">${icon}</div>
     <div class="finfo">
       <div class="fname" data-raw="${escHtml(label)}">${escHtml(label)}</div>
-      <div class="fmeta">${fmtSize(item.size)}&thinsp;·&thinsp;PDF</div>
+      <div class="fmeta">${meta}</div>
     </div>
-    <div class="faction">${ICON.ext} open</div>`;
+    <div class="faction">
+      <span class="act-preview">${ICON.preview} preview</span>
+      <span class="act-sep">·</span>
+      ${ICON.ext} open
+    </div>`;
+
+  const previewBtn = a.querySelector('.act-preview');
+  if(previewBtn){
+    previewBtn.addEventListener('click', (ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      previewDoc(url, label);
+    });
+  }
+
   allCards.push({el:a, text:label});
   return a;
 }
 
+/* ── YouTube cards ───────────────────────────────────────────── */
 function mkYtCard(link){
   const a = document.createElement('a');
   a.className = 'card yt';
@@ -482,10 +616,6 @@ function mkYtCard(link){
   return a;
 }
 
-function escHtml(s){
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function secLabel(text){
   const d = document.createElement('div');
   d.className = 'sec-label';
@@ -502,11 +632,15 @@ async function populate(li, path){
     const links = await getLinks(items);
 
     const dirs = items.filter(i=>i.type==='dir' && !CFG.ignore.has(i.name));
-    const pdfs = items.filter(i=>i.type==='file' && ext(i.name)==='.pdf' && !CFG.ignore.has(i.name));
+    const docs = items.filter(i=>
+      i.type==='file' &&
+      !CFG.ignore.has(i.name) &&
+      (ext(i.name)==='.pdf' || ext(i.name)==='.html')
+    );
 
     body.innerHTML='';
 
-    if(!dirs.length && !pdfs.length && !links.length){
+    if(!dirs.length && !docs.length && !links.length){
       body.innerHTML='<div class="empty">No documents here yet.</div>';
       return;
     }
@@ -519,12 +653,12 @@ async function populate(li, path){
       body.appendChild(sub);
     }
 
-    // PDFs
-    if(pdfs.length){
-      if(dirs.length) body.appendChild(secLabel(`Documents · ${pdfs.length}`));
+    // Documents (PDF + HTML)
+    if(docs.length){
+      if(dirs.length) body.appendChild(secLabel(`Documents · ${docs.length}`));
       const grid = document.createElement('div');
       grid.className='files';
-      pdfs.forEach(p=>grid.appendChild(mkPdfCard(p)));
+      docs.forEach(p=>grid.appendChild(mkDocCard(p)));
       body.appendChild(grid);
     }
 
@@ -538,11 +672,9 @@ async function populate(li, path){
     }
 
     // Update badge
-    const total = pdfs.length + links.length + dirs.length;
+    const total = docs.length + links.length + dirs.length;
     const badge = li.querySelector('.f-badge');
-    if(badge){
-      badge.textContent = total;
-    }
+    if(badge) badge.textContent = total;
 
   }catch(e){
     const msg = e.code==='rate'
@@ -616,21 +748,25 @@ async function boot(){
     tree.innerHTML='';
 
     const dirs = items.filter(i=>i.type==='dir' && !CFG.ignore.has(i.name));
-    const pdfs = items.filter(i=>i.type==='file' && ext(i.name)==='.pdf' && !CFG.ignore.has(i.name));
+    const docs = items.filter(i=>
+      i.type==='file' &&
+      !CFG.ignore.has(i.name) &&
+      (ext(i.name)==='.pdf' || ext(i.name)==='.html')
+    );
 
-    if(!dirs.length && !pdfs.length && !links.length){
+    if(!dirs.length && !docs.length && !links.length){
       tree.innerHTML='<li><div class="empty" style="padding:3rem">No folders or documents found at root.</div></li>';
       return;
     }
 
     dirs.forEach(d=>tree.appendChild(mkFolder(d.name,d.path)));
 
-    if(pdfs.length){
+    if(docs.length){
       const wrap = document.createElement('li');
-      if(dirs.length) wrap.appendChild(secLabel(`Root Documents · ${pdfs.length}`));
+      if(dirs.length) wrap.appendChild(secLabel(`Root Documents · ${docs.length}`));
       const grid = document.createElement('div');
       grid.className='files';
-      pdfs.forEach(p=>grid.appendChild(mkPdfCard(p)));
+      docs.forEach(p=>grid.appendChild(mkDocCard(p)));
       wrap.appendChild(grid);
       tree.appendChild(wrap);
     }
