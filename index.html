@@ -1,1141 +1,679 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 Repo Document Browser</title>
-    <style>
-        :root {
-            --bg: #f9f8f6;
-            --surface: #ffffff;
-            --surface-hover: #f3f1ed;
-            --border: #e7e3dc;
-            --text: #2c2a27;
-            --text-secondary: #6b6560;
-            --accent: #4a7c96;
-            --accent-light: #e8f0f5;
-            --pdf-color: #c75b4a;
-            --pdf-bg: #fef5f3;
-            --yt-color: #c4302b;
-            --yt-bg: #fff5f5;
-            --folder-color: #d4a853;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.07);
-            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-            --radius-sm: 8px;
-            --radius: 12px;
-            --radius-lg: 18px;
-            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/*
+  YOUTUBE LINKS CONVENTION
+  ─────────────────────────
+  Place a file named  links.json  in any folder you want YouTube links shown.
+  Format:
+  [
+    { "title": "My Video Title", "url": "https://youtu.be/VIDEO_ID", "description": "Optional caption" },
+    ...
+  ]
+  The file is hidden from the document listing automatically.
+*/
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-        body {
-            font-family: var(--font);
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
+:root{
+  --bg:#0d0c0b;
+  --surf:#161412;
+  --surf2:#1e1c19;
+  --border:rgba(201,168,76,.12);
+  --border-h:rgba(201,168,76,.28);
+  --text:#ede8df;
+  --muted:#7a7060;
+  --gold:#c9a84c;
+  --gold-glow:rgba(201,168,76,.06);
+  --blue:#6ba3be;
+  --blue-a:rgba(107,163,190,.14);
+  --blue-b:rgba(107,163,190,.24);
+  --red:#e05050;
+  --red-a:rgba(224,80,80,.13);
+  --red-b:rgba(224,80,80,.24);
+  --r:6px;
+  --t:180ms ease;
+}
 
-        /* Subtle background texture */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse at 20% 20%, rgba(180, 160, 130, 0.04) 0%, transparent 60%),
-                radial-gradient(ellipse at 75% 60%, rgba(140, 160, 180, 0.04) 0%, transparent 60%),
-                radial-gradient(ellipse at 50% 85%, rgba(160, 140, 120, 0.03) 0%, transparent 50%);
-        }
+html{scroll-behavior:smooth}
 
-        .app {
-            position: relative;
-            z-index: 1;
-            max-width: 820px;
-            margin: 0 auto;
-            padding: 24px 20px 60px;
-        }
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  line-height:1.6;
+  min-height:100vh;
+}
 
-        /* ── Header ─────────────────────── */
-        .header {
-            text-align: center;
-            padding: 36px 24px 28px;
-            margin-bottom: 20px;
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            position: relative;
-            overflow: hidden;
-        }
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            translate: -50% 0;
-            width: 120px;
-            height: 3px;
-            border-radius: 3px;
-            background: linear-gradient(90deg, var(--folder-color), var(--accent), var(--pdf-color));
-            opacity: 0.7;
-        }
-        .header .repo-icon {
-            font-size: 48px;
-            margin-bottom: 6px;
-            display: block;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-8px);
-            }
-        }
-        .header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            color: var(--text);
-            margin: 0 0 4px;
-            word-break: break-word;
-        }
-        .header .subtitle {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-        .header .repo-link {
-            display: inline-block;
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition);
-            padding: 4px 12px;
-            border-radius: 20px;
-            background: var(--accent-light);
-        }
-        .header .repo-link:hover {
-            background: #d4e4f0;
-            color: #365d73;
-        }
+/* ── Grain ───────────────────────────────────────────────────── */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9999;
+  opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
 
-        /* ── Breadcrumbs ────────────────── */
-        .breadcrumbs {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 10px 16px;
-            margin-bottom: 16px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            background: var(--surface);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            min-height: 42px;
-        }
-        .breadcrumbs .crumb {
-            cursor: pointer;
-            color: var(--accent);
-            font-weight: 500;
-            padding: 3px 8px;
-            border-radius: 6px;
-            transition: var(--transition);
-            white-space: nowrap;
-            user-select: none;
-        }
-        .breadcrumbs .crumb:hover {
-            background: var(--accent-light);
-            color: #365d73;
-        }
-        .breadcrumbs .crumb.root {
-            font-weight: 600;
-        }
-        .breadcrumbs .sep {
-            color: #c5bfb6;
-            pointer-events: none;
-            user-select: none;
-            font-size: 0.75rem;
-        }
-        .breadcrumbs .crumb.current {
-            color: var(--text);
-            font-weight: 600;
-            pointer-events: none;
-            cursor: default;
-        }
+/* ── Header ──────────────────────────────────────────────────── */
+header{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;gap:2rem;
+  padding:1.6rem 3rem;
+  background:rgba(13,12,11,.9);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
 
-        /* ── Tree Container ─────────────── */
-        .tree {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            overflow: hidden;
-        }
-        .tree-inner {
-            padding: 8px 0;
-        }
+.h-logo{
+  font-family:'Playfair Display',serif;
+  font-size:1.5rem;
+  font-weight:400;
+  white-space:nowrap;
+}
+.h-logo em{color:var(--gold);font-style:italic}
 
-        /* ── Tree Items ────────────────── */
-        .tree-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            margin: 1px 8px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: var(--transition);
-            gap: 10px;
-            min-height: 46px;
-            position: relative;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .tree-item:hover {
-            background: var(--surface-hover);
-        }
-        .tree-item:active {
-            scale: 0.995;
-        }
-        .tree-item .icon {
-            font-size: 1.3rem;
-            flex-shrink: 0;
-            width: 28px;
-            text-align: center;
-            transition: var(--transition);
-        }
-        .tree-item .name {
-            flex: 1;
-            font-weight: 500;
-            font-size: 0.93rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            min-width: 0;
-        }
-        .tree-item .meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .tree-item .actions {
-            display: flex;
-            gap: 4px;
-            flex-shrink: 0;
-        }
-        .tree-item .action-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            background: transparent;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            flex-shrink: 0;
-        }
-        .tree-item .action-btn:hover {
-            background: rgba(0, 0, 0, 0.06);
-            color: var(--text);
-        }
-        .tree-item .action-btn.preview-btn:hover {
-            background: var(--pdf-bg);
-            color: var(--pdf-color);
-        }
-        .tree-item .action-btn.open-btn:hover {
-            background: var(--accent-light);
-            color: var(--accent);
-        }
-        .tree-item .action-btn.yt-btn:hover {
-            background: var(--yt-bg);
-            color: var(--yt-color);
-        }
+.h-sub{
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  border-left:1px solid var(--border-h);
+  padding-left:1.2rem;
+  line-height:1.4;
+}
 
-        /* ── Folder-specific ────────────── */
-        .tree-item.folder-item {
-            font-weight: 600;
-        }
-        .tree-item.folder-item .chevron {
-            font-size: 0.7rem;
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            color: var(--text-secondary);
-            flex-shrink: 0;
-            width: 16px;
-            text-align: center;
-        }
-        .tree-item.folder-item.expanded .chevron {
-            transform: rotate(90deg);
-        }
-        .tree-item.folder-item .icon {
-            color: var(--folder-color);
-        }
+.h-search{
+  margin-left:auto;
+  position:relative;
+  display:flex;align-items:center;
+}
+.h-search input{
+  background:var(--surf);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  color:var(--text);
+  font-family:inherit;
+  font-size:12px;
+  padding:.45rem .75rem .45rem 2rem;
+  width:200px;
+  outline:none;
+  transition:border-color var(--t),width var(--t);
+}
+.h-search input:focus{border-color:var(--border-h);width:260px}
+.h-search input::placeholder{color:var(--muted)}
+.h-search svg{
+  position:absolute;left:.6rem;
+  width:13px;height:13px;
+  color:var(--muted);
+  pointer-events:none;
+}
 
-        /* ── PDF item ──────────────────── */
-        .tree-item.pdf-item .icon {
-            color: var(--pdf-color);
-        }
-        .tree-item.pdf-item {
-            border-left: 3px solid transparent;
-            margin-left: 12px;
-            padding-left: 13px;
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        }
-        .tree-item.pdf-item:hover {
-            border-left-color: var(--pdf-color);
-            background: var(--pdf-bg);
-        }
+/* ── Divider rule ────────────────────────────────────────────── */
+.rule{
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold) 40%,transparent);
+  opacity:.18;
+  margin:0 3rem;
+}
 
-        /* ── YouTube link item ─────────── */
-        .tree-item.yt-item .icon {
-            color: var(--yt-color);
-        }
-        .tree-item.yt-item {
-            border-left: 3px solid transparent;
-            margin-left: 12px;
-            padding-left: 13px;
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        }
-        .tree-item.yt-item:hover {
-            border-left-color: var(--yt-color);
-            background: var(--yt-bg);
-        }
-        .tree-item.yt-item .name {
-            color: #5c1a18;
-        }
+/* ── Main ────────────────────────────────────────────────────── */
+main{
+  max-width:860px;
+  margin:0 auto;
+  padding:2.5rem 3rem 5rem;
+}
 
-        /* ── Children container ────────── */
-        .children {
-            overflow: hidden;
-            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
-            max-height: 0;
-            opacity: 0;
-        }
-        .children.open {
-            max-height: 4000px;
-            opacity: 1;
-        }
-        .children-inner {
-            padding: 2px 0 6px 0;
-            border-left: 2px solid #ece7de;
-            margin-left: 28px;
-            position: relative;
-        }
-        .children-inner::before {
-            content: '';
-            position: absolute;
-            left: -2px;
-            top: 0;
-            bottom: 20px;
-            width: 2px;
-            background: linear-gradient(to bottom, #d9d2c5 0%, transparent 100%);
-            border-radius: 1px;
-            pointer-events: none;
-        }
+/* ── Status banner ───────────────────────────────────────────── */
+.banner{
+  background:var(--surf);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:.85rem 1.1rem;
+  margin-bottom:1.5rem;
+  font-size:12px;
+  color:var(--muted);
+}
+.banner.err{border-color:var(--red-b);color:var(--red)}
 
-        /* ── Loading ───────────────────── */
-        .loading-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 20px;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%,
-            100% {
-                opacity: 0.5;
-            }
-            50% {
-                opacity: 1;
-            }
-        }
-        .loading-spinner {
-            width: 18px;
-            height: 18px;
-            border: 2px solid #ddd;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+/* ── Tree ────────────────────────────────────────────────────── */
+.tree{list-style:none}
+.tree-item{margin-bottom:3px}
 
-        /* ── Empty state ───────────────── */
-        .empty-state {
-            text-align: center;
-            padding: 32px 20px;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-        .empty-state .empty-icon {
-            font-size: 2.5rem;
-            display: block;
-            margin-bottom: 8px;
-            opacity: 0.6;
-        }
+/* Folder row */
+.f-row{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.6rem .8rem;
+  cursor:pointer;user-select:none;
+  border-radius:var(--r);
+  border:1px solid transparent;
+  transition:background var(--t),border-color var(--t);
+}
+.f-row:hover{background:var(--surf);border-color:var(--border)}
+.open>.f-row{
+  background:var(--surf);border-color:var(--border);
+  border-bottom-color:transparent;
+  border-bottom-left-radius:0;border-bottom-right-radius:0;
+}
 
-        /* ── Error banner ──────────────── */
-        .error-banner {
-            background: #fff0ef;
-            border: 1px solid #f5c6c0;
-            color: #8b3c34;
-            padding: 14px 18px;
-            border-radius: var(--radius);
-            margin-bottom: 16px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .error-banner .error-icon {
-            font-size: 1.3rem;
-        }
+.f-caret{
+  width:14px;height:14px;
+  color:var(--muted);flex-shrink:0;
+  transition:transform var(--t),color var(--t);
+}
+.open>.f-row .f-caret{transform:rotate(90deg);color:var(--gold)}
 
-        /* ── Preview Modal ─────────────── */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.55);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            animation: fadeIn 0.2s ease;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-        .modal {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 900px;
-            max-height: 88vh;
-            display: flex;
-            flex-direction: column;
-            animation: slideUp 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
-        }
-        @keyframes slideUp {
-            from {
-                transform: translateY(40px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .modal-header .modal-title {
-            font-weight: 600;
-            font-size: 0.95rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1;
-            min-width: 0;
-            margin-right: 12px;
-        }
-        .modal-header .modal-actions {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-        .modal-header button {
-            padding: 7px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            cursor: pointer;
-            font-size: 0.82rem;
-            font-weight: 500;
-            transition: var(--transition);
-            white-space: nowrap;
-            font-family: var(--font);
-        }
-        .modal-header button:hover {
-            background: var(--surface-hover);
-        }
-        .modal-header button.close-btn {
-            width: 34px;
-            height: 34px;
-            padding: 0;
-            border-radius: 50%;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-        }
-        .modal-header button.close-btn:hover {
-            background: #f0ece7;
-            color: var(--text);
-        }
-        .modal-body {
-            flex: 1;
-            min-height: 0;
-            overflow: hidden;
-            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-        }
-        .modal-body iframe {
-            width: 100%;
-            height: 100%;
-            min-height: 65vh;
-            border: none;
-            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-        }
+.f-icon{width:16px;height:16px;color:var(--gold);flex-shrink:0}
+.f-name{flex:1;font-weight:500;letter-spacing:.02em}
+.f-badge{
+  font-size:10px;color:var(--muted);
+  background:var(--surf2);
+  border:1px solid var(--border);
+  border-radius:20px;padding:1px 7px;
+  opacity:0;transition:opacity var(--t);
+}
+.open>.f-row .f-badge{opacity:1}
 
-        /* ── Responsive ────────────────── */
-        @media (max-width: 600px) {
-            .app {
-                padding: 12px 8px 40px;
-            }
-            .header {
-                padding: 24px 16px 20px;
-            }
-            .header h1 {
-                font-size: 1.3rem;
-            }
-            .tree-item {
-                padding: 8px 10px;
-                gap: 6px;
-                margin: 1px 4px;
-                min-height: 40px;
-            }
-            .tree-item .name {
-                font-size: 0.85rem;
-            }
-            .tree-item .icon {
-                font-size: 1.1rem;
-                width: 22px;
-            }
-            .children-inner {
-                margin-left: 18px;
-            }
-            .tree-item.pdf-item,
-            .tree-item.yt-item {
-                margin-left: 6px;
-                padding-left: 10px;
-            }
-            .modal {
-                max-height: 95vh;
-                border-radius: var(--radius);
-            }
-            .modal-body iframe {
-                min-height: 50vh;
-            }
-        }
+/* Folder body */
+.f-body{
+  display:none;
+  padding:.4rem .4rem .4rem 1.6rem;
+  background:var(--surf);
+  border:1px solid var(--border);
+  border-top:none;
+  border-bottom-left-radius:var(--r);
+  border-bottom-right-radius:var(--r);
+}
+.open>.f-body{display:block}
 
-        @media (max-width: 380px) {
-            .tree-item .actions {
-                gap: 2px;
-            }
-            .tree-item .action-btn {
-                width: 28px;
-                height: 28px;
-                font-size: 0.85rem;
-            }
-            .breadcrumbs {
-                font-size: 0.75rem;
-                padding: 8px 10px;
-                gap: 2px;
-            }
-        }
-    </style>
+/* Loading */
+.loading{
+  display:flex;align-items:center;gap:.5rem;
+  padding:.7rem .5rem;
+  color:var(--muted);font-size:11px;
+}
+.spin{
+  width:11px;height:11px;flex-shrink:0;
+  border:1.5px solid var(--border-h);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  animation:spin .65s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Section label */
+.sec-label{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);
+  padding:.6rem .6rem .3rem;
+  border-bottom:1px solid var(--border);
+  margin-bottom:3px;
+}
+
+/* Empty */
+.empty{
+  padding:1.5rem;text-align:center;
+  color:var(--muted);font-size:12px;
+}
+
+/* ── File cards ──────────────────────────────────────────────── */
+.files{display:grid;gap:3px;padding-top:2px}
+
+.card{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.55rem .7rem;
+  border:1px solid transparent;
+  border-radius:var(--r);
+  cursor:pointer;
+  text-decoration:none;color:inherit;
+  transition:background var(--t),border-color var(--t),transform var(--t);
+}
+.card:hover{transform:translateX(4px)}
+.card.pdf:hover{background:var(--blue-a);border-color:var(--blue-b)}
+.card.yt:hover{background:var(--red-a);border-color:var(--red-b)}
+
+/* File type badge */
+.ftype{
+  width:32px;height:32px;flex-shrink:0;
+  border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+}
+.ftype.pdf{background:var(--blue-a);border:1px solid var(--blue-b);color:var(--blue)}
+.ftype.yt{background:var(--red-a);border:1px solid var(--red-b);color:var(--red)}
+.ftype svg{width:14px;height:14px}
+
+/* YouTube thumbnail */
+.yt-thumb{
+  width:52px;height:36px;flex-shrink:0;
+  border-radius:4px;overflow:hidden;
+  position:relative;background:var(--surf2);
+  border:1px solid var(--border);
+}
+.yt-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.yt-play-over{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.35);
+  transition:background var(--t);
+}
+.card:hover .yt-play-over{background:rgba(0,0,0,.15)}
+.yt-play-over svg{width:13px;height:13px;color:#fff}
+
+.finfo{flex:1;min-width:0}
+.fname{
+  font-size:12.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.fmeta{font-size:10.5px;color:var(--muted);margin-top:1px}
+
+.faction{
+  font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);
+  display:flex;align-items:center;gap:3px;
+  opacity:0;transition:opacity var(--t);
+  flex-shrink:0;
+}
+.faction svg{width:10px;height:10px}
+.card:hover .faction{opacity:1}
+
+/* ── Config notice ───────────────────────────────────────────── */
+#cfg-notice{
+  position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;
+  background:var(--surf2);border:1px solid var(--border-h);
+  border-radius:var(--r);padding:.9rem 1.1rem;
+  font-size:11px;color:var(--muted);max-width:300px;
+  display:none;
+}
+#cfg-notice code{color:var(--gold);font-family:inherit}
+
+/* ── Search highlight ────────────────────────────────────────── */
+.hl{background:rgba(201,168,76,.25);border-radius:2px;padding:0 1px}
+
+/* ── Fade-in items ───────────────────────────────────────────── */
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.card,.tree-item>.f-row{animation:fadein .2s ease both}
+</style>
 </head>
 <body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <span class="repo-icon">📚</span>
-            <h1 id="repoTitle">Repository Document Browser</h1>
-            <p class="subtitle">Browse folders, preview PDFs, and watch linked videos</p>
-            <a id="repoLink" class="repo-link" href="#" target="_blank" rel="noopener">View on GitHub ↗</a>
-        </header>
 
-        <!-- Error banner (hidden by default) -->
-        <div id="errorBanner" class="error-banner" style="display:none;">
-            <span class="error-icon">⚠️</span>
-            <span id="errorMessage"></span>
-        </div>
+<!--
+  ═══════════════════════════════════════════════════════════════════
+   CONFIG  — edit these two lines if auto-detection fails
+  ═══════════════════════════════════════════════════════════════════
+-->
+<script>
+const CFG = {
+  owner:  '',          // e.g. 'johndoe'   — leave blank for auto-detect
+  repo:   '',          // e.g. 'my-docs'   — leave blank for auto-detect
+  branch: 'main',      // or 'master'
+  linksFile: 'links.json',
+  ignore: new Set([
+    'index.html','README.md','readme.md','.gitignore',
+    'LICENSE','LICENSE.md','CNAME','.nojekyll','links.json',
+  ]),
+};
+</script>
+<!--
+  ═══════════════════════════════════════════════════════════════════
+-->
 
-        <!-- Breadcrumbs -->
-        <nav class="breadcrumbs" id="breadcrumbs" aria-label="Breadcrumb navigation">
-            <span class="crumb root" data-path="">📁 Root</span>
-        </nav>
+<header>
+  <div>
+    <div class="h-logo" id="h-title">Loading<em>…</em></div>
+    <div class="h-sub" id="h-sub">Document Archive</div>
+  </div>
+  <div class="h-search" id="search-wrap" style="display:none">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <circle cx="9" cy="9" r="5.5"/><path stroke-linecap="round" d="M13.5 13.5l3 3"/>
+    </svg>
+    <input type="search" id="search-input" placeholder="Filter documents…" aria-label="Filter documents">
+  </div>
+</header>
+<div class="rule"></div>
 
-        <!-- Tree -->
-        <div class="tree">
-            <div class="tree-inner" id="treeRoot">
-                <div class="loading-indicator">
-                    <div class="loading-spinner"></div>
-                    Loading repository contents…
-                </div>
-            </div>
-        </div>
+<main>
+  <div id="banner-zone"></div>
+  <ul class="tree" id="root-tree" role="tree"></ul>
+</main>
+
+<div id="cfg-notice">
+  Auto-detection failed. Set <code>CFG.owner</code> and <code>CFG.repo</code>
+  at the top of this file.
+</div>
+
+<script>
+/* ── SVG icons ─────────────────────────────────────────────────── */
+const ICON = {
+  caret:`<svg class="f-caret" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>`,
+  folder:`<svg class="f-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>`,
+  pdf:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`,
+  play:`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>`,
+  ext:`<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>`,
+};
+
+/* ── Repo detection ─────────────────────────────────────────────── */
+let REPO = null;
+
+(function detect(){
+  if(CFG.owner && CFG.repo){
+    REPO = {owner:CFG.owner, repo:CFG.repo};
+    return;
+  }
+  const host = location.hostname;
+  if(host==='localhost'||host==='127.0.0.1') return;
+  if(!host.endsWith('.github.io')) return;
+  const owner = host.replace('.github.io','');
+  const seg = location.pathname.replace(/^\//,'').split('/').filter(Boolean);
+  const repo = seg[0] || owner+'.github.io';
+  REPO = {owner, repo};
+})();
+
+function apiUrl(path=''){
+  const base = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}/contents`;
+  return base + (path ? '/'+path : '') + '?ref='+CFG.branch;
+}
+
+/* ── Fetch helpers ─────────────────────────────────────────────── */
+async function getContents(path=''){
+  const r = await fetch(apiUrl(path));
+  if(!r.ok){
+    if(r.status===403) throw Object.assign(new Error('rate_limited'),{code:'rate'});
+    if(r.status===404) throw Object.assign(new Error('not found'),{code:'404'});
+    throw new Error('HTTP '+r.status);
+  }
+  return r.json();
+}
+
+async function getLinks(items){
+  const lf = items.find(i=>i.name===CFG.linksFile && i.type==='file');
+  if(!lf) return [];
+  try{
+    const r = await fetch(lf.download_url);
+    if(!r.ok) return [];
+    return r.json();
+  }catch{ return []; }
+}
+
+/* ── Utilities ─────────────────────────────────────────────────── */
+function ext(name){const i=name.lastIndexOf('.');return i>0?name.slice(i).toLowerCase():'';}
+function fmtSize(b){
+  if(!b) return '';
+  if(b<1024) return b+' B';
+  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(1)+' MB';
+}
+function ytId(url){
+  const m = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  return m?m[1]:null;
+}
+function stripPdf(n){return n.replace(/\.pdf$/i,'');}
+
+/* ── Search state ──────────────────────────────────────────────── */
+let searchQuery = '';
+const allCards = [];  // {el, text}
+
+function highlight(text, q){
+  if(!q) return text;
+  const re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return text.replace(re,'<span class="hl">$1</span>');
+}
+
+function applySearch(){
+  const q = searchQuery.toLowerCase();
+  allCards.forEach(({el, text})=>{
+    const match = !q || text.toLowerCase().includes(q);
+    el.style.display = match ? '' : 'none';
+    if(match && q){
+      const fnameEl = el.querySelector('.fname');
+      if(fnameEl) fnameEl.innerHTML = highlight(fnameEl.dataset.raw||fnameEl.textContent, q);
+    } else if(!q){
+      const fnameEl = el.querySelector('.fname');
+      if(fnameEl && fnameEl.dataset.raw) fnameEl.innerHTML = fnameEl.dataset.raw;
+    }
+  });
+}
+
+/* ── Render helpers ────────────────────────────────────────────── */
+function mkPdfCard(item){
+  const a = document.createElement('a');
+  a.className = 'card pdf';
+  a.href = item.download_url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  const label = stripPdf(item.name);
+  a.innerHTML = `
+    <div class="ftype pdf">${ICON.pdf}</div>
+    <div class="finfo">
+      <div class="fname" data-raw="${escHtml(label)}">${escHtml(label)}</div>
+      <div class="fmeta">${fmtSize(item.size)}&thinsp;·&thinsp;PDF</div>
     </div>
+    <div class="faction">${ICON.ext} open</div>`;
+  allCards.push({el:a, text:label});
+  return a;
+}
 
-    <!-- Preview Modal -->
-    <div id="previewModal" class="modal-overlay" style="display:none;" aria-hidden="true">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title" id="modalTitle">PDF Preview</span>
-                <div class="modal-actions">
-                    <button id="modalOpenBtn" title="Open in new tab">↗ Open</button>
-                    <button class="close-btn" id="modalCloseBtn" title="Close preview">✕</button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <iframe id="modalIframe" src="" title="PDF Preview"></iframe>
-            </div>
-        </div>
+function mkYtCard(link){
+  const a = document.createElement('a');
+  a.className = 'card yt';
+  a.href = link.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  const vid = ytId(link.url);
+  const thumbHtml = vid
+    ? `<div class="yt-thumb"><img src="https://img.youtube.com/vi/${vid}/mqdefault.jpg" alt="" loading="lazy"><div class="yt-play-over">${ICON.play}</div></div>`
+    : `<div class="ftype yt">${ICON.play}</div>`;
+  const desc = link.description || 'YouTube';
+  a.innerHTML = `
+    ${thumbHtml}
+    <div class="finfo">
+      <div class="fname" data-raw="${escHtml(link.title)}">${escHtml(link.title)}</div>
+      <div class="fmeta">${escHtml(desc)}</div>
     </div>
+    <div class="faction">${ICON.ext} watch</div>`;
+  allCards.push({el:a, text:link.title});
+  return a;
+}
 
-    <script>
-        (function() {
-            // ─────────────────────────────────────
-            // Configuration & State
-            // ─────────────────────────────────────
-            const CACHE = new Map(); // path -> { contents, links }
-            const LINKS_FILENAME = '_links.json';
-            let currentRepoOwner = '';
-            let currentRepoName = '';
-            let repoHtmlUrl = '';
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-            // ─────────────────────────────────────
-            // DOM References
-            // ─────────────────────────────────────
-            const treeRoot = document.getElementById('treeRoot');
-            const breadcrumbsEl = document.getElementById('breadcrumbs');
-            const repoTitleEl = document.getElementById('repoTitle');
-            const repoLinkEl = document.getElementById('repoLink');
-            const errorBanner = document.getElementById('errorBanner');
-            const errorMessage = document.getElementById('errorMessage');
-            const previewModal = document.getElementById('previewModal');
-            const modalIframe = document.getElementById('modalIframe');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalOpenBtn = document.getElementById('modalOpenBtn');
-            const modalCloseBtn = document.getElementById('modalCloseBtn');
+function secLabel(text){
+  const d = document.createElement('div');
+  d.className = 'sec-label';
+  d.textContent = text;
+  return d;
+}
 
-            // ─────────────────────────────────────
-            // Repo Detection
-            // ─────────────────────────────────────
-            function detectRepo() {
-                const url = new URL(window.location.href);
-                const params = new URLSearchParams(url.search);
+/* ── Populate a folder body ────────────────────────────────────── */
+async function populate(li, path){
+  const body = li.querySelector('.f-body');
+  body.innerHTML = '<div class="loading"><div class="spin"></div>Fetching…</div>';
+  try{
+    const items = await getContents(path);
+    const links = await getLinks(items);
 
-                // Allow manual override via ?repo=owner/name
-                if (params.has('repo')) {
-                    const [owner, name] = params.get('repo').split('/');
-                    if (owner && name) {
-                        currentRepoOwner = owner.trim();
-                        currentRepoName = name.trim();
-                        repoHtmlUrl = `https://github.com/${currentRepoOwner}/${currentRepoName}`;
-                        return true;
-                    }
-                }
+    const dirs = items.filter(i=>i.type==='dir' && !CFG.ignore.has(i.name));
+    const pdfs = items.filter(i=>i.type==='file' && ext(i.name)==='.pdf' && !CFG.ignore.has(i.name));
 
-                // Auto-detect from GitHub Pages URL: https://owner.github.io/repo/
-                const hostname = url.hostname;
-                if (hostname.endsWith('.github.io')) {
-                    const owner = hostname.replace('.github.io', '');
-                    const pathParts = url.pathname.split('/').filter(Boolean);
-                    const repo = pathParts[0] || '';
-                    if (owner && repo && owner !== 'github') {
-                        currentRepoOwner = owner;
-                        currentRepoName = repo;
-                        repoHtmlUrl = `https://github.com/${currentRepoOwner}/${currentRepoName}`;
-                        return true;
-                    }
-                }
+    body.innerHTML='';
 
-                // Fallback: try to detect from path if served via raw GitHub or custom domain
-                // Check if we can find owner/repo pattern in the path
-                const pathParts = url.pathname.split('/').filter(Boolean);
-                if (pathParts.length >= 2) {
-                    // Could be a custom domain pointing to a repo page
-                    // This is a best-effort guess
-                    currentRepoOwner = pathParts[0];
-                    currentRepoName = pathParts[1];
-                    repoHtmlUrl = `https://github.com/${currentRepoOwner}/${currentRepoName}`;
-                    return true;
-                }
+    if(!dirs.length && !pdfs.length && !links.length){
+      body.innerHTML='<div class="empty">No documents here yet.</div>';
+      return;
+    }
 
-                return false;
-            }
+    // Sub-folders
+    if(dirs.length){
+      const sub = document.createElement('ul');
+      sub.className='tree';
+      dirs.forEach(d=>sub.appendChild(mkFolder(d.name,d.path)));
+      body.appendChild(sub);
+    }
 
-            // ─────────────────────────────────────
-            // GitHub API Helpers
-            // ─────────────────────────────────────
-            function apiUrl(path) {
-                const cleanPath = path ? `/${path}` : '';
-                return `https://api.github.com/repos/${currentRepoOwner}/${currentRepoName}/contents${cleanPath}`;
-            }
+    // PDFs
+    if(pdfs.length){
+      if(dirs.length) body.appendChild(secLabel(`Documents · ${pdfs.length}`));
+      const grid = document.createElement('div');
+      grid.className='files';
+      pdfs.forEach(p=>grid.appendChild(mkPdfCard(p)));
+      body.appendChild(grid);
+    }
 
-            async function fetchContents(path) {
-                if (CACHE.has(path)) {
-                    return CACHE.get(path);
-                }
-                const response = await fetch(apiUrl(path));
-                if (!response.ok) {
-                    if (response.status === 403 && response.headers.get('X-RateLimit-Remaining') === '0') {
-                        throw new Error(
-                            'GitHub API rate limit exceeded (60 requests/hour for unauthenticated access). Please wait and try again later.'
-                            );
-                    }
-                    if (response.status === 404) {
-                        throw new Error(`Path not found: "${path || 'root'}" — the repository or folder may not exist.`);
-                    }
-                    throw new Error(
-                        `GitHub API error: ${response.status} ${response.statusText}. The repository might be private or inaccessible.`
-                        );
-                }
-                const data = await response.json();
+    // YouTube links
+    if(links.length){
+      body.appendChild(secLabel(`Videos · ${links.length}`));
+      const grid = document.createElement('div');
+      grid.className='files';
+      links.forEach(l=>grid.appendChild(mkYtCard(l)));
+      body.appendChild(grid);
+    }
 
-                // Separate _links.json from other files
-                let links = [];
-                const contents = [];
-                if (Array.isArray(data)) {
-                    for (const item of data) {
-                        if (item.type === 'file' && item.name === LINKS_FILENAME) {
-                            // Fetch the _links.json content
-                            try {
-                                const linksData = await fetchLinksJson(item.download_url);
-                                links = linksData;
-                            } catch (e) {
-                                console.warn(`Could not parse ${LINKS_FILENAME} in "${path || 'root'}":`, e.message);
-                                links = [];
-                            }
-                        } else {
-                            contents.push(item);
-                        }
-                    }
-                }
+    // Update badge
+    const total = pdfs.length + links.length + dirs.length;
+    const badge = li.querySelector('.f-badge');
+    if(badge){
+      badge.textContent = total;
+    }
 
-                // Sort: folders first, then files, both alphabetically
-                contents.sort((a, b) => {
-                    if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
-                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-                });
+  }catch(e){
+    const msg = e.code==='rate'
+      ? 'GitHub API rate limit reached — try again in a minute.'
+      : 'Could not load folder contents.';
+    body.innerHTML=`<div class="loading" style="color:var(--red)">${msg}</div>`;
+  }
+}
 
-                const result = { contents, links };
-                CACHE.set(path, result);
-                return result;
-            }
+/* ── Create a folder list item ─────────────────────────────────── */
+function mkFolder(name, path){
+  const li = document.createElement('li');
+  li.className='tree-item';
+  li.dataset.path = path;
+  li.dataset.loaded = '0';
+  li.setAttribute('role','treeitem');
+  li.setAttribute('aria-expanded','false');
 
-            async function fetchLinksJson(downloadUrl) {
-                const response = await fetch(downloadUrl);
-                if (!response.ok) throw new Error('Failed to fetch links JSON');
-                const data = await response.json();
-                if (!Array.isArray(data)) throw new Error('Links JSON is not an array');
-                // Validate and clean entries
-                return data
-                    .filter(entry => entry && typeof entry.url === 'string' && entry.url.trim().length > 0)
-                    .map(entry => ({
-                        title: (entry.title || entry.name || 'YouTube Link').toString().trim(),
-                        url: entry.url.trim(),
-                        description: entry.description || '',
-                    }));
-            }
+  li.innerHTML=`
+    <div class="f-row" tabindex="0" role="button" aria-label="Toggle ${escHtml(name)}">
+      ${ICON.caret}
+      ${ICON.folder}
+      <span class="f-name">${escHtml(name)}</span>
+      <span class="f-badge" aria-hidden="true"></span>
+    </div>
+    <div class="f-body" role="group"></div>`;
 
-            // ─────────────────────────────────────
-            // Rendering
-            // ─────────────────────────────────────
-            function showError(msg) {
-                errorMessage.textContent = msg;
-                errorBanner.style.display = 'flex';
-            }
+  const row = li.querySelector('.f-row');
 
-            function hideError() {
-                errorBanner.style.display = 'none';
-            }
+  async function toggle(){
+    const open = li.classList.contains('open');
+    if(open){
+      li.classList.remove('open');
+      li.setAttribute('aria-expanded','false');
+      return;
+    }
+    li.classList.add('open');
+    li.setAttribute('aria-expanded','true');
+    if(li.dataset.loaded==='0'){
+      li.dataset.loaded='1';
+      await populate(li, path);
+      if(searchQuery) applySearch();
+    }
+  }
 
-            function renderBreadcrumbs(pathParts) {
-                // Build breadcrumb from path parts
-                let html = '<span class="crumb root" data-path="">📁 Root</span>';
-                let accumulated = '';
-                pathParts.forEach((part, index) => {
-                    accumulated += (accumulated ? '/' : '') + part;
-                    const isLast = index === pathParts.length - 1;
-                    html += '<span class="sep">›</span>';
-                    html +=
-                        `<span class="crumb${isLast ? ' current' : ''}" data-path="${escapeHtmlAttr(accumulated)}">${escapeHtml(part)}</span>`;
-                });
-                breadcrumbsEl.innerHTML = html;
+  row.addEventListener('click', toggle);
+  row.addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});
+  return li;
+}
 
-                // Attach click handlers
-                breadcrumbsEl.querySelectorAll('.crumb:not(.current)').forEach(crumb => {
-                    crumb.addEventListener('click', () => {
-                        const targetPath = crumb.getAttribute('data-path') || '';
-                        navigateTo(targetPath);
-                    });
-                });
-            }
+/* ── Boot ──────────────────────────────────────────────────────── */
+async function boot(){
+  const tree = document.getElementById('root-tree');
+  const bannerZone = document.getElementById('banner-zone');
 
-            function navigateTo(path) {
-                hideError();
-                const pathParts = path ? path.split('/').filter(Boolean) : [];
-                renderBreadcrumbs(pathParts);
-                renderTreeForPath(path, treeRoot);
-            }
+  if(!REPO){
+    document.getElementById('cfg-notice').style.display='block';
+    document.getElementById('h-title').innerHTML = 'Archive';
+    return;
+  }
 
-            async function renderTreeForPath(path, container) {
-                container.innerHTML =
-                    '<div class="loading-indicator"><div class="loading-spinner"></div>Loading…</div>';
+  document.getElementById('h-title').innerHTML =
+    `${escHtml(REPO.owner)} / <em>${escHtml(REPO.repo)}</em>`;
 
-                try {
-                    const { contents, links } = await fetchContents(path);
-                    renderContents(contents, links, container, path);
-                } catch (err) {
-                    container.innerHTML = `
-                    <div class="empty-state">
-                      <span class="empty-icon">⚠️</span>
-                      <p>${escapeHtml(err.message)}</p>
-                      <button onclick="location.reload()" style="margin-top:12px;padding:8px 18px;border-radius:20px;border:1px solid #ccc;cursor:pointer;background:#fff;font-family:inherit;">🔄 Retry</button>
-                    </div>`;
-                    showError(err.message);
-                }
-            }
+  tree.innerHTML='<li><div class="loading"><div class="spin"></div>Loading repository…</div></li>';
 
-            function renderContents(contents, links, container, currentPath) {
-                if (contents.length === 0 && links.length === 0) {
-                    container.innerHTML = `
-                    <div class="empty-state">
-                      <span class="empty-icon">📭</span>
-                      <p>This folder is empty</p>
-                    </div>`;
-                    return;
-                }
+  try{
+    const items = await getContents('');
+    const links = await getLinks(items);
 
-                const fragment = document.createDocumentFragment();
-                const wrapper = document.createElement('div');
-                wrapper.className = 'tree-inner';
-                wrapper.style.padding = '4px 0';
+    tree.innerHTML='';
 
-                // Render folders
-                contents.filter(item => item.type === 'dir').forEach(folder => {
-                    const folderPath = currentPath ? `${currentPath}/${folder.name}` : folder.name;
-                    const itemEl = createFolderItem(folder.name, folderPath);
-                    wrapper.appendChild(itemEl);
-                });
+    const dirs = items.filter(i=>i.type==='dir' && !CFG.ignore.has(i.name));
+    const pdfs = items.filter(i=>i.type==='file' && ext(i.name)==='.pdf' && !CFG.ignore.has(i.name));
 
-                // Render PDF files
-                contents.filter(item => item.type === 'file' && isPdf(item.name)).forEach(file => {
-                    const itemEl = createPdfItem(file.name, file.download_url);
-                    wrapper.appendChild(itemEl);
-                });
+    if(!dirs.length && !pdfs.length && !links.length){
+      tree.innerHTML='<li><div class="empty" style="padding:3rem">No folders or documents found at root.</div></li>';
+      return;
+    }
 
-                // Render other files (non-PDF, non-_links.json)
-                contents.filter(item => item.type === 'file' && !isPdf(item.name) && item.name !==
-                    LINKS_FILENAME).forEach(file => {
-                    const itemEl = createGenericFileItem(file.name, file.download_url);
-                    wrapper.appendChild(itemEl);
-                });
+    dirs.forEach(d=>tree.appendChild(mkFolder(d.name,d.path)));
 
-                // Render YouTube links from _links.json
-                links.forEach((link, index) => {
-                    const itemEl = createYoutubeLinkItem(link, index);
-                    wrapper.appendChild(itemEl);
-                });
+    if(pdfs.length){
+      const wrap = document.createElement('li');
+      if(dirs.length) wrap.appendChild(secLabel(`Root Documents · ${pdfs.length}`));
+      const grid = document.createElement('div');
+      grid.className='files';
+      pdfs.forEach(p=>grid.appendChild(mkPdfCard(p)));
+      wrap.appendChild(grid);
+      tree.appendChild(wrap);
+    }
 
-                // If nothing rendered at all
-                if (wrapper.children.length === 0) {
-                    wrapper.innerHTML = `
-                    <div class="empty-state">
-                      <span class="empty-icon">📭</span>
-                      <p>No viewable content in this folder</p>
-                    </div>`;
-                }
+    if(links.length){
+      const wrap = document.createElement('li');
+      wrap.appendChild(secLabel(`Videos · ${links.length}`));
+      const grid = document.createElement('div');
+      grid.className='files';
+      links.forEach(l=>grid.appendChild(mkYtCard(l)));
+      wrap.appendChild(grid);
+      tree.appendChild(wrap);
+    }
 
-                fragment.appendChild(wrapper);
-                container.innerHTML = '';
-                container.appendChild(fragment);
-            }
+    // Enable search only when there's something to search
+    const sw = document.getElementById('search-wrap');
+    sw.style.display='flex';
+    document.getElementById('search-input').addEventListener('input', e=>{
+      searchQuery = e.target.value.trim();
+      // Auto-expand all folders so search actually reaches items
+      if(searchQuery){
+        document.querySelectorAll('.tree-item:not(.open)').forEach(li=>{
+          li.classList.add('open');
+          li.setAttribute('aria-expanded','true');
+          if(li.dataset.loaded==='0'){
+            li.dataset.loaded='1';
+            populate(li, li.dataset.path).then(()=>applySearch());
+          }
+        });
+      }
+      applySearch();
+    });
 
-            function createFolderItem(name, folderPath) {
-                const div = document.createElement('div');
-                div.className = 'tree-item folder-item';
-                div.setAttribute('data-folder-path', folderPath);
-                div.innerHTML = `
-                  <span class="chevron">▸</span>
-                  <span class="icon">📁</span>
-                  <span class="name">${escapeHtml(name)}</span>
-                  <span class="meta">folder</span>
-                `;
-                div.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleFolder(div, folderPath);
-                });
-                return div;
-            }
+  }catch(e){
+    tree.innerHTML='';
+    const msg = e.code==='rate'
+      ? 'GitHub API rate limit reached — wait a minute and refresh.'
+      : `Failed to load repository: ${e.message}`;
+    bannerZone.innerHTML=`<div class="banner err">${msg}</div>`;
+  }
+}
 
-            function createPdfItem(name, downloadUrl) {
-                const div = document.createElement('div');
-                div.className = 'tree-item pdf-item';
-                div.innerHTML = `
-                  <span class="icon">📄</span>
-                  <span class="name" title="${escapeHtmlAttr(name)}">${escapeHtml(name)}</span>
-                  <span class="actions">
-                    <button class="action-btn preview-btn" title="Preview PDF" aria-label="Preview ${escapeHtmlAttr(name)}">👁</button>
-                    <button class="action-btn open-btn" title="Open in new tab" aria-label="Open ${escapeHtmlAttr(name)} in new tab">↗</button>
-                  </span>
-                `;
-
-                // Click on name -> open in new tab
-                const nameEl = div.querySelector('.name');
-                nameEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-                });
-
-                // Preview button
-                const previewBtn = div.querySelector('.preview-btn');
-                previewBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    openPreview(downloadUrl, name);
-                });
-
-                // Open button
-                const openBtn = div.querySelector('.open-btn');
-                openBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-                });
-
-                return div;
-            }
-
-            function createGenericFileItem(name, downloadUrl) {
-                const div = document.createElement('div');
-                div.className = 'tree-item';
-                div.style.borderLeft = '3px solid transparent';
-                div.style.marginLeft = '12px';
-                div.style.paddingLeft = '13px';
-                div.style.borderRadius = '0 var(--radius-sm) var(--radius-sm) 0';
-                div.style.opacity = '0.75';
-                div.innerHTML = `
-                  <span class="icon">📎</span>
-                  <span class="name" title="${escapeHtmlAttr(name)}">${escapeHtml(name)}</span>
-                  <span class="actions">
-                    <button class="action-btn open-btn" title="Open in new tab" aria-label="Open ${escapeHtmlAttr(name)}">↗</button>
-                  </span>
-                `;
-
-                const nameEl = div.querySelector('.name');
-                nameEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-                });
-
-                const openBtn = div.querySelector('.open-btn');
-                openBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-                });
-
-                return div;
-            }
-
-            function createYoutubeLinkItem(link, index) {
-                const div = document.createElement('div');
-                div.className = 'tree-item yt-item';
-                div.innerHTML = `
-                  <span class="icon">🎬</span>
-                  <span class="name" title="${escapeHtmlAttr(link.description || link.title)}">${escapeHtml(link.title)}</span>
-                  <span class="actions">
-                    <button class="action-btn yt-btn" title="Watch on YouTube" aria-label="Watch ${escapeHtmlAttr(link.title)} on YouTube">▶</button>
-                  </span>
-                `;
-
-                const nameEl = div.querySelector('.name');
-                nameEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(link.url, '_blank', 'noopener,noreferrer');
-                });
-
-                const ytBtn = div.querySelector('.yt-btn');
-                ytBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.open(link.url, '_blank', 'noopener,noreferrer');
-                });
-
-                return div;
-            }
-
-            async function toggleFolder(folderElement, folderPath) {
-                const isExpanded = folderElement.classList.contains('expanded');
-
-                if (isExpanded) {
-                    // Collapse
-                    folderElement.classList.remove('expanded');
-                    folderElement.querySelector('.icon').textContent = '📁';
-                    const existingChildren = folderElement.nextElementSibling;
-                    if (existingChildren && existingChildren.classList.contains('children')) {
-                        existingChildren.classList.remove('open');
-                        // Remove after animation
-                        setTimeout(() => {
-                            if (existingChildren.parentNode && !existingChildren.classList.contains(
-                                    'open')) {
-                                existingChildren.remove();
-                            }
-                        }, 350);
-                    }
-                } else {
-                    // Expand
-                    folderElement.classList.add('expanded');
-                    folderElement.querySelector('.icon').textContent = '📂';
-
-                    // Check if children container already exists
-                    let childrenContainer = folderElement.nextElementSibling;
-                    if (!childrenContainer || !childrenContainer.classList.contains('children')) {
-                        childrenContainer = document.createElement('div');
-                        childrenContainer.className = 'children';
-                        const inner = document.createElement('div');
-                        inner.className = 'children-inner';
-                        inner.innerHTML =
-                            '<div class="loading-indicator"><div class="loading-spinner"></div>Loading…</div>';
-                        childrenContainer.appendChild(inner);
-                        folderElement.insertAdjacentElement('afterend', childrenContainer);
-                    }
-
-                    const inner = childrenContainer.querySelector('.children-inner');
-                    childrenContainer.classList.add('open');
-
-                    // Fetch and render
-                    try {
-                        const { contents, links } = await fetchContents(folderPath);
-                        renderContents(contents, links, inner, folderPath);
-                    } catch (err) {
-                        inner.innerHTML = `
-                        <div class="empty-state">
-                          <span class="empty-icon">⚠️</span>
-                          <p>${escapeHtml(err.message)}</p>
-                        </div>`;
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────
-            // Preview Modal
-            // ─────────────────────────────────────
-            function openPreview(pdfUrl, pdfName) {
-                modalTitle.textContent = pdfName;
-                modalIframe.src = pdfUrl;
-                modalOpenBtn.onclick = () => window.open(pdfUrl, '_blank', 'noopener,noreferrer');
-                previewModal.style.display = 'flex';
-                previewModal.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closePreview() {
-                previewModal.style.display = 'none';
-                previewModal.setAttribute('aria-hidden', 'true');
-                modalIframe.src = '';
-                document.body.style.overflow = '';
-            }
-
-            modalCloseBtn.addEventListener('click', closePreview);
-            previewModal.addEventListener('click', (e) => {
-                if (e.target === previewModal) closePreview();
-            });
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && previewModal.style.display === 'flex') {
-                    closePreview();
-                }
-            });
-
-            // ─────────────────────────────────────
-            // Utility Functions
-            // ─────────────────────────────────────
-            function isPdf(filename) {
-                return /\.pdf$/i.test(filename);
-            }
-
-            function escapeHtml(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
-            }
-
-            function escapeHtmlAttr(str) {
-                return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-            }
-
-            // ─────────────────────────────────────
-            // Initialization
-            // ─────────────────────────────────────
-            function init() {
-                const detected = detectRepo();
-
-                if (!detected) {
-                    treeRoot.innerHTML = `
-                    <div class="empty-state">
-                      <span class="empty-icon">🔍</span>
-                      <p><strong>Could not auto-detect the repository.</strong></p>
-                      <p style="margin-top:6px;">If you're running this locally, add <code>?repo=owner/repo-name</code> to the URL.</p>
-                      <p style="font-size:0.8rem;color:#999;">Example: <code>index.html?repo=myuser/my-docs-repo</code></p>
-                    </div>`;
-                    repoTitleEl.textContent = 'Repository Document Browser';
-                    repoLinkEl.style.display = 'none';
-                    return;
-                }
-
-                repoTitleEl.textContent = currentRepoName;
-                repoLinkEl.href = repoHtmlUrl;
-                repoLinkEl.style.display = 'inline-block';
-                document.title = `📚 ${currentRepoName} — Doc Browser`;
-
-                // Initial render
-                renderBreadcrumbs([]);
-                renderTreeForPath('', treeRoot);
-            }
-
-            init();
-        })();
-    </script>
+boot();
+</script>
 </body>
 </html>
