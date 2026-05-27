@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -369,16 +369,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape') closePreview();});
 const allCards=[];
 let searchQuery='';
 
-function mkDocCard(item){
-  const url = pageUrl(item.path);
-
-  const isPdf  = item.name.endsWith('.pdf');
-  const isHtml = item.name.endsWith('.html');
-
-  const ext = isPdf ? '.pdf' : '.html';
-  const typeLabel = isPdf ? 'PDF' : 'HTML';
-
-  const label = stripExt(item.name, ext);
+function mkPdfCard(item){
+  const url=pageUrl(item.path);
+  const label=stripExt(item.name,'.pdf');
 
   const div=document.createElement('div');
   div.className='card pdf';
@@ -390,7 +383,7 @@ function mkDocCard(item){
     <div class="ftype pdf">${IC.pdf}</div>
     <div class="finfo">
       <div class="fname" data-raw="${esc(label)}">${esc(label)}</div>
-      <div class="fmeta">${fmtSize(item.size)}&thinsp;·&thinsp;${typeLabel}</div>
+      <div class="fmeta">${fmtSize(item.size)}&thinsp;·&thinsp;PDF</div>
     </div>
     <div class="card-actions">
       <button class="btn-action btn-preview" title="Preview in panel">${IC.eye} preview</button>
@@ -399,35 +392,6 @@ function mkDocCard(item){
 
   const btnPreview=div.querySelector('.btn-preview');
   const btnOpen=div.querySelector('.btn-open');
-
-  function doPreview(e){
-    e.preventDefault();
-    e.stopPropagation();
-
-    activeCard=div;
-    div.classList.add('active-preview');
-
-    openPreview(url,label);
-  }
-
-  div.addEventListener('click',e=>{
-    if(btnOpen.contains(e.target)) return;
-    doPreview(e);
-  });
-
-  div.addEventListener('keydown',e=>{
-    if(e.key==='Enter'||e.key===' '){
-      e.preventDefault();
-      doPreview(e);
-    }
-  });
-
-  btnPreview.addEventListener('click',doPreview);
-
-  allCards.push({el:div,text:label});
-
-  return div;
-}
 
   function doPreview(e){
     e.preventDefault();e.stopPropagation();
@@ -500,18 +464,11 @@ async function populate(li,path){
     const ytLinks=await getYoutubeLinks(items);
 
     const dirs=items.filter(i=>i.type==='dir'&&!CFG.ignore.has(i.name));
-    const docs = items.filter(i =>
-        i.type === 'file' &&
-        (
-          i.name.endsWith('.pdf') ||
-          i.name.endsWith('.html')
-        ) &&
-        !CFG.ignore.has(i.name)
-      );
+    const pdfs=items.filter(i=>i.type==='file'&&i.name.endsWith('.pdf')&&!CFG.ignore.has(i.name));
 
     body.innerHTML='';
 
-    if(!dirs.length&&!docs.length&&!ytLinks.length){
+    if(!dirs.length&&!pdfs.length&&!ytLinks.length){
       body.innerHTML='<div class="empty">No documents here yet.</div>';return;
     }
 
@@ -520,10 +477,10 @@ async function populate(li,path){
       dirs.forEach(d=>sub.appendChild(mkFolder(d.name,d.path)));
       body.appendChild(sub);
     }
-    if(docs.length){
-      if(dirs.length) body.appendChild(secLabel(`Documents · ${docs.length}`));
+    if(pdfs.length){
+      if(dirs.length) body.appendChild(secLabel(`Documents · ${pdfs.length}`));
       const g=document.createElement('div');g.className='files';
-      docs.forEach(p=>g.appendChild(mkDocCard(p)));
+      pdfs.forEach(p=>g.appendChild(mkPdfCard(p)));
       body.appendChild(g);
     }
     if(ytLinks.length){
@@ -533,7 +490,7 @@ async function populate(li,path){
       body.appendChild(g);
     }
 
-    const total=docs.length+ytLinks.length+dirs.length;
+    const total=pdfs.length+ytLinks.length+dirs.length;
     const badge=li.querySelector('.f-badge');
     if(badge) badge.textContent=total;
 
@@ -593,25 +550,19 @@ async function boot(){
     tree.innerHTML='';
 
     const dirs=items.filter(i=>i.type==='dir'&&!CFG.ignore.has(i.name));
-  const docs = items.filter(i =>
-    i.type === 'file' &&
-    (
-      i.name.endsWith('.pdf') ||
-      i.name.endsWith('.html')
-    ) &&
-    !CFG.ignore.has(i.name)
-  );
-    if(!dirs.length&&!docs.length&&!ytLinks.length){
+    const pdfs=items.filter(i=>i.type==='file'&&i.name.endsWith('.pdf')&&!CFG.ignore.has(i.name));
+
+    if(!dirs.length&&!pdfs.length&&!ytLinks.length){
       tree.innerHTML='<li><div class="empty" style="padding:3rem">No folders or documents at root.</div></li>';return;
     }
 
     dirs.forEach(d=>tree.appendChild(mkFolder(d.name,d.path)));
 
-    if(docs.length){
+    if(pdfs.length){
       const wrap=document.createElement('li');
-      if(dirs.length) wrap.appendChild(secLabel(`Root documents · ${docs.length}`));
+      if(dirs.length) wrap.appendChild(secLabel(`Root documents · ${pdfs.length}`));
       const g=document.createElement('div');g.className='files';
-      docs.forEach(p=>g.appendChild(mkDocCard(p)));
+      pdfs.forEach(p=>g.appendChild(mkPdfCard(p)));
       wrap.appendChild(g);tree.appendChild(wrap);
     }
     if(ytLinks.length){
